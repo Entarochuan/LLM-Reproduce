@@ -98,9 +98,9 @@ for epoch in range(num_epochs):
             # 计算对数空间中的平均损失
             avg_loss = batch_loss / batch_tokens
             # 计算困惑度
-            ppl = math.exp(avg_loss)
+            batch_ppl = math.exp(avg_loss)
             
-            print(f'Step : {batch_idx+1}, Loss : {loss.item()}, ppl = {ppl}')
+            print(f'Step : {batch_idx+1}, Loss : {loss.item()}, batch ppl = {batch_ppl}')
         
         if (batch_idx+1) % 100 == 0 : 
             # 应用 softmax 转换为概率分布

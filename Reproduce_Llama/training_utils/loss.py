@@ -1,3 +1,9 @@
+"""
+
+    loss : LM loss实现，暂时不考虑并行
+"""
+
+
 from torch import nn
 import torch
 import torch.nn.functional as F
@@ -15,7 +21,7 @@ class LMLoss(nn.Module):
     def forward(self, logits, labels):
         
         shift_logits = logits[..., :-1, :].contiguous()
-        shift_labels = labels[..., 1:].contiguous()
+        shift_labels = labels[..., 1:].contiguous() # label移位
         # Flatten the tokens
         shift_logits = shift_logits.view(-1, logits.size(-1))
         shift_labels = shift_labels.view(-1)

@@ -40,7 +40,7 @@ class LMdataset(IterableDataset):
         
                     padded_input_tokens = torch.tensor(padded_input_tokens)
                     
-                    yield padded_input_tokens, padded_input_tokens
+                    yield padded_input_tokens, padded_input_tokens # dataset部分不实现shift，在loss内实现。
 
 if __name__ == "__main__": 
     
