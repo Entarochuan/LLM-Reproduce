@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from dataclasses import dataclass
 from typing import Optional
 
-from multi_head_attention import Multi_Head_Self_Attention, FeedForward
-from model_utils import RMSNorm
+from .multi_head_attention import Multi_Head_Self_Attention, FeedForward
+from .model_utils import RMSNorm
 
 @dataclass
 class ModelArgs:
@@ -75,8 +75,8 @@ class TransformerBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        start_pos: int,
-        freqs_cis: torch.Tensor,
+        # start_pos: int,
+        # freqs_cis: torch.Tensor,
         mask: Optional[torch.Tensor],
     ):
         
@@ -94,7 +94,7 @@ class TransformerBlock(nn.Module):
 
         """
 
-        h = self.attention(self.attention_norm(x), mask)
+        h, _ = self.attention(self.attention_norm(x), mask)
         out = h + self.feed_forward.forward(self.ffn_norm(h))
         return out
     
@@ -129,7 +129,7 @@ class Transformer(nn.Module):
         self.vocab_size = args.vocab_size
         self.n_layers = args.n_layers
 
-        self.tok_embeddings = nn.Linear(args.vocab_size, args.hidden_size)
+        self.tok_embeddings = nn.Embedding(args.vocab_size+1, args.hidden_size) # 应该用查找表
 
         self.layers = torch.nn.ModuleList()
         for layer_id in range(args.n_layers):
@@ -139,13 +139,15 @@ class Transformer(nn.Module):
         self.output = nn.Linear(args.hidden_size, args.vocab_size)
 
     def forward(self, tokens: torch.Tensor) : 
-        _bsz, seq_length, vocab_size = tokens.shape
+        # print(tokens)
+        _bsz, seq_length = tokens.shape
+        tokens[tokens == -1] = self.vocab_size
         h = self.tok_embeddings(tokens)
         mask = None
         
-        if seqlen > 1:
+        if seq_length > 1:
             mask = torch.full(
-                (seqlen, seqlen), float("-inf"), device=tokens.device
+                (seq_length, seq_length), float("-inf"), device=tokens.device
             )
             mask = torch.triu(mask, diagonal=1)
 
@@ -171,6 +173,16 @@ if __name__ == "__main__" :
         max_seq_len = 2048,
     )
     
-    transformer = Transformer(model_args).cuda()
-    print(transformer)
+    transformer = Transformer(model_args)
+    print(f"Before moving to CUDA: {next(iter(transformer.tok_embeddings.parameters())).device}")
+
+    # 确保整个模型及其包含的所有层都在CUDA上
+    transformer.cuda()
+
+    # 检查tok_embeddings现在是否已经在GPU上了
+    print(f"After moving to CUDA: {next(iter(transformer.tok_embeddings.parameters())).device}")
     
+    x = torch.randn((16, 256, 9144))
+    output = transformer(x)
+    print(output.shape)
+        

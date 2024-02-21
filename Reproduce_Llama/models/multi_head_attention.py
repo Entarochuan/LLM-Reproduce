@@ -8,7 +8,7 @@ from torch import nn
 from einops import rearrange
 import torch.nn.functional as F
 
-from model_utils import RMSNorm, Rotary_Positional_Embeedding
+from .model_utils import RMSNorm, Rotary_Positional_Embeedding
 
 class Multi_Head_Self_Attention(nn.Module) : 
     
@@ -61,7 +61,8 @@ class Multi_Head_Self_Attention(nn.Module) :
     def forward(self, x, attention_mask=None):
 
         # qkv : (batch_size, seq_len, 3, num_head, head_dim)
-        
+        # print(x.shape)
+        # print(self.Wqkv.weight.shape)
         qkv = self.Wqkv(x)
         qkv = rearrange(qkv, 'b s (three h d) -> b s three h d', three=3, h=self.num_heads, d=self.head_dim) # resize qkv 
         q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
@@ -94,7 +95,10 @@ class ScaledDotProductAttention(nn.Module):
         attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
         
         if mask is not None:
-            attn = attn.masked_fill(mask == 0, -1e9)
+            attn = attn.to(torch.float32)
+            attn = attn.masked_fill(mask == 0, -65504.0)  # 半精度浮点数的最大负数
+            attn = attn.to(torch.half)  # 再转回半精度
+
 
         attn = self.dropout(F.softmax(attn, dim=-1))
         output = torch.matmul(attn, v)

@@ -8,41 +8,51 @@ from torch import nn
 import torch
 from einops import rearrange, repeat
 
-class RMSNorm(nn.Module):
-    
-    """ RMS Mormalization
-
-        Args:
-            dim : hidden size
-            eps : epsilon
-    
-    """    
-    
-    def __init__(
-        self, 
-        dim:int, 
-        eps:float=1e-5
-    ) -> None: 
-        super().__init__()
-        
-        self.eps = eps 
-        self.weights = torch.ones(dim)
-    
-    def forward(self, x:torch.Tensor):
-        """ 
-        Args:
-            x : Tensor
-        Returns:
-           output =  weight * x / RMS(x)
-    
+class RMSNorm(torch.nn.Module):
+    def __init__(self, dim: int, eps: float = 1e-6):
         """
-        
-        variance = x.pow(2).to(torch.float32).mean(-1, keepdim=True)
-        x = x * torch.rsqrt(variance + self.eps)
-        if self.weights.dtype in [torch.float16, torch.bfloat16]:
-            x = x.to(self.weights.dtype)
+        Initialize the RMSNorm normalization layer.
 
-        return self.weights * x 
+        Args:
+            dim (int): The dimension of the input tensor.
+            eps (float, optional): A small value added to the denominator for numerical stability. Default is 1e-6.
+
+        Attributes:
+            eps (float): A small value added to the denominator for numerical stability.
+            weight (nn.Parameter): Learnable scaling parameter.
+
+        """
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    def _norm(self, x):
+        """
+        Apply the RMSNorm normalization to the input tensor.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The normalized tensor.
+
+        """
+        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+
+    def forward(self, x):
+        """
+        Forward pass through the RMSNorm layer.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after applying RMSNorm.
+
+        """
+        # print(x.shape)
+        output = self._norm(x.float()).type_as(x)
+        return output * self.weight
     
 
 class Rotary_Positional_Embeedding(nn.Module):
@@ -130,7 +140,9 @@ class Rotary_Positional_Embeedding(nn.Module):
         if len(x.shape) == 4 : 
             cos = cos.unsqueeze(1).repeat(1, 1, head_num, 1)
             sin = sin.unsqueeze(1).repeat(1, 1, head_num, 1)
-            
+        
+        cos = cos.to(x.device)
+        sin = sin.to(x.device)
         return cos * x + sin * rotate_x
 
         
