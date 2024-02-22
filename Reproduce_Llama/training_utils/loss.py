@@ -20,11 +20,11 @@ class LMLoss(nn.Module):
 
     def forward(self, logits, labels):
         
-        shift_logits = logits[..., :-1, :].contiguous()
-        shift_labels = labels[..., 1:].contiguous() # label移位
+        # shift_logits = logits[..., :-1, :].contiguous()
+        # shift_labels = labels[..., 1:].contiguous() # label移位
         # Flatten the tokens
-        shift_logits = shift_logits.view(-1, logits.size(-1))
-        shift_labels = shift_labels.view(-1)
+        shift_logits = logits.view(-1, logits.size(-1))
+        shift_labels = logits.view(-1)
         # Enable model parallelism
         shift_labels = shift_labels.to(shift_logits.device)#确保标签tensor和logits的tensor在相同的设备上
         

@@ -94,12 +94,13 @@ class ScaledDotProductAttention(nn.Module):
 
         attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
         
-        if mask is not None:
-            attn = attn.to(torch.float32)
-            attn = attn.masked_fill(mask == 0, -65504.0)  # 半精度浮点数的最大负数
-            attn = attn.to(torch.half)  # 再转回半精度
+        # if mask is not None:
+        #     attn = attn.to(torch.float32)
+        #     attn = attn.masked_fill(mask == 0, -65504.0)  # 半精度浮点数的最大负数
+        #     attn = attn.to(torch.half)  # 再转回半精度
 
-
+        attn = attn.masked_fill(mask == 0, -1e6) 
+        
         attn = self.dropout(F.softmax(attn, dim=-1))
         output = torch.matmul(attn, v)
 

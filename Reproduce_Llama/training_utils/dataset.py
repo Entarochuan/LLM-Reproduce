@@ -33,15 +33,22 @@ class LMdataset(IterableDataset):
                     if len(input_tokens) > self.max_token_length:
                         input_tokens = input_tokens[:self.max_token_length]
                     if len(target_tokens) > self.max_token_length:
-                        input_tokens = target_tokens[:self.max_token_length]
+                        target_tokens = target_tokens[:self.max_token_length]
 
-                    padding_length = self.max_token_length - len(input_tokens)
-                    padded_input_tokens = input_tokens + [self.tokenizer.pad_id()] * padding_length
-        
-                    padded_input_tokens = torch.tensor(padded_input_tokens)
+                    padded_input_tokens = self.pad(input_tokens)
+                    padded_target_tokens = self.pad(target_tokens)
                     
-                    yield padded_input_tokens, padded_input_tokens # dataset部分不实现shift，在loss内实现。
+                    yield padded_input_tokens, padded_target_tokens # dataset部分不实现shift，在loss内实现。
+                    
+    def pad(self, tokens) : 
+        
+        padding_length = self.max_token_length - len(tokens)
+        padded_input_tokens = tokens + [self.tokenizer.pad_id()] * padding_length
+        padded_input_tokens = torch.tensor(padded_input_tokens)
+        
+        return padded_input_tokens
 
+        
 if __name__ == "__main__": 
     
     from sentencepiece import SentencePieceProcessor
